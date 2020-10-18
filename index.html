@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <title>Helium Reward Log</title>
+        <meta charset="utf-8">
+        <meta name="description" content="Download Helium reward information as a spreadsheet (csv) for tax reporting.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" href="css/normalize.css">
+        <link rel="stylesheet" href="css/skeleton.css">
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h2>Helium Reward Log</h2>
+                <p>The start datetime is INCLUSIVE while the end datetime is EXCLUSIVE.</p>
+                <p><b>A note for testers:</b> This generates a LOT of individual calls to the Helium API (that's how their API is designed, unfortunately). A single call failure will cause the entire generate request to fail; for example, if requesting a month's records fails, you will need to re-generate the entire request. I may address this in a future update. It is best to start your requests with a smaller timeframe (week, month) and move larger with your confidence level.</p>
+                <p>Feedback and error reports can be shared with me by email: <a href="mailto:jstn@jstnryan.com">jstn@jstnryan.com</a></p>
+            </div>
+            <div class="request-form">
+                <form>
+                    <div class="row">
+                        <div class="seven columns">
+                            <label for="address">Wallet Public Address</label>
+                            <input class="u-full-width" type="text" id="address" pattern="1[A-Za-z0-9]{50}">
+                            <!-- placeholder="14AFyLof1gFVGnyJxRB3rqsDhSCEDgujrbtZJY3xk6i4zUyYqy4" -->
+                        </div>
+                        <div class="five columns">
+                            <label for="timezone">Offset (Timezone)</label>
+                            <select id="timezone" name="timezone" class="u-full-width" onchange="updateDateTime('start');updateDateTime('end');">
+                                <option value="-12:00">-12:00</option>
+                                <option value="-11:00">-11:00</option>
+                                <option value="-10:00">-10:00</option>
+                                <option value="-09:30">-09:30</option>
+                                <option value="-09:00">-09:00</option>
+                                <option value="-08:00">-08:00</option>
+                                <option value="-07:00">-07:00</option>
+                                <option value="-06:00">-06:00</option>
+                                <option value="-05:00">-05:00</option>
+                                <option value="-04:00">-04:30</option>
+                                <option value="-04:00">-04:00</option>
+                                <option value="-03:00">-03:30</option>
+                                <option value="-03:00">-03:00</option>
+                                <option value="-02:30">-02:30</option>
+                                <option value="-02:00">-02:00</option>
+                                <option value="-01:00">-01:00</option>
+                                <option value="-00:00" selected>UTC</option>
+                                <option value="+01:00">+01:00</option>
+                                <option value="+02:00">+02:00</option>
+                                <option value="+03:00">+03:00</option>
+                                <option value="+03:30">+03:30</option>
+                                <option value="+04:00">+04:00</option>
+                                <option value="+04:30">+04:30</option>
+                                <option value="+05:00">+05:00</option>
+                                <option value="+05:30">+05:30</option>
+                                <option value="+05:45">+05:45</option>
+                                <option value="+06:00">+06:00</option>
+                                <option value="+06:30">+06:30</option>
+                                <option value="+07:00">+07:00</option>
+                                <option value="+08:00">+08:00</option>
+                                <option value="+08:45">+08:45</option>
+                                <option value="+09:00">+09:00</option>
+                                <option value="+09:30">+09:30</option>
+                                <option value="+10:00">+10:00</option>
+                                <option value="+10:30">+10:30</option>
+                                <option value="+11:00">+11:00</option>
+                                <option value="+12:00">+12:00</option>
+                                <option value="+13:00">+13:00</option>
+                                <option value="+13:45">+13:45</option>
+                                <option value="+14:00">+14:00</option>
+                            </select>
+                        </div>
+                    </div>
+                    <label>Start Datetime: <span id="start-datetime">2020-10-02T03:04:01-07:00</span></label>
+                    <div class="row">
+                        <div class="two columns">
+                            <label for="start-year">Year</label>
+                            <input id="start-year" name="start[y]" class="u-full-width" type="number" value="" min="2018" maxlength="4" onchange="updateDateTime('start')">
+                        </div>
+                        <div class="two columns">
+                            <label for="start-month">Month</label>
+                            <select class="u-full-width" id="start-month" name="start[m]" onchange="updateDateTime('start')">
+                                <option value="01">January</option>
+                                <option value="02">February</option>
+                                <option value="03">March</option>
+                                <option value="04">April</option>
+                                <option value="05">May</option>
+                                <option value="06">June</option>
+                                <option value="07">July</option>
+                                <option value="08">August</option>
+                                <option value="09">September</option>
+                                <option value="10">October</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                        </div>
+                        <div class="two columns">
+                            <label for="start-day">Day</label>
+                            <select class="u-full-width" id="start-day" name="start[d]" onchange="updateDateTime('start')">
+                                <option value="01">01</option>
+                                <option value="02">02</option>
+                                <option value="03">03</option>
+                                <option value="04">04</option>
+                                <option value="05">05</option>
+                                <option value="06">06</option>
+                                <option value="07">07</option>
+                                <option value="08">08</option>
+                                <option value="09">09</option>
+                                <option value="10">10</option>
+                                <option value="11">11</option>
+                                <option value="12">12</option>
+                                <option value="13">13</option>
+                                <option value="14">14</option>
+                                <option value="15">15</option>
+                                <option value="16">16</option>
+                                <option value="17">17</option>
+                                <option value="18">18</option>
+                                <option value="19">19</option>
+                                <option value="20">20</option>
+                                <option value="21">21</option>
+                                <option value="22">22</option>
+                                <option value="23">23</option>
+                                <option value="24">24</option>
+                                <option value="25">25</option>
+                                <option value="26">26</option>
+                                <option value="27">27</option>
+                                <option value="28">28</option>
+                                <option value="29">29</option>
+                                <option value="30">30</option>
+                                <option value="31">31</option>
+                            </select>
+                        </div>
+                        <div class="two columns">
+                            <label for="start-hour">Hour</label>
+                            <select class="u-full-width" id="start-hour" name="start[h]" onchange="updateDateTime('start')">
+                                <option value="00" selected="">00</option>
+                                <option value="01">01</option>
+                                <option value="02">02</option>
+                                <option value="03">03</option>
+                                <option value="04">04</option>
+                                <option value="05">05</option>
+                                <option value="06">06</option>
+                                <option value="07">07</option>
+                                <option value="08">08</option>
+                                <option value="09">09</option>
+                                <option value="10">10</option>
+                                <option value="11">11</option>
+                                <option value="12">12</option>
+                                <option value="13">13</option>
+                                <option value="14">14</option>
+                                <option value="15">15</option>
+                                <option value="16">16</option>
+                                <option value="17">17</option>
+                                <option value="18">18</option>
+                                <option value="19">19</option>
+                                <option value="20">20</option>
+                                <option value="21">21</option>
+                                <option value="22">22</option>
+                                <option value="23">23</option>
+                            </select>
+                        </div>
+                        <div class="two columns">
+                            <label for="start-minute">Minute</label>
+                            <select class="u-full-width" id="start-minute" name="start[i]" onchange="updateDateTime('start')">
+                                <option value="00" selected="">00</option>
+                                <option value="01">01</option>
+                                <option value="02">02</option>
+                                <option value="03">03</option>
+                                <option value="04">04</option>
+                                <option value="05">05</option>
+                                <option value="06">06</option>
+                                <option value="07">07</option>
+                                <option value="08">08</option>
+                                <option value="09">09</option>
+                                <option value="10">10</option>
+                                <option value="11">11</option>
+                                <option value="12">12</option>
+                                <option value="13">13</option>
+                                <option value="14">14</option>
+                                <option value="15">15</option>
+                                <option value="16">16</option>
+                                <option value="17">17</option>
+                                <option value="18">18</option>
+                                <option value="19">19</option>
+                                <option value="20">20</option>
+                                <option value="21">21</option>
+                                <option value="22">22</option>
+                                <option value="23">23</option>
+                                <option value="24">24</option>
+                                <option value="25">25</option>
+                                <option value="26">26</option>
+                                <option value="27">27</option>
+                                <option value="28">28</option>
+                                <option value="29">29</option>
+                                <option value="30">30</option>
+                                <option value="31">31</option>
+                                <option value="32">32</option>
+                                <option value="33">33</option>
+                                <option value="34">34</option>
+                                <option value="35">35</option>
+                                <option value="36">36</option>
+                                <option value="37">37</option>
+                                <option value="38">38</option>
+                                <option value="39">39</option>
+                                <option value="40">40</option>
+                                <option value="41">41</option>
+                                <option value="42">42</option>
+                                <option value="43">43</option>
+                                <option value="44">44</option>
+                                <option value="45">45</option>
+                                <option value="46">46</option>
+                                <option value="47">47</option>
+                                <option value="48">48</option>
+                                <option value="49">49</option>
+                                <option value="50">50</option>
+                                <option value="51">51</option>
+                                <option value="52">52</option>
+                                <option value="53">53</option>
+                                <option value="54">54</option>
+                                <option value="55">55</option>
+                                <option value="56">56</option>
+                                <option value="57">57</option>
+                                <option value="58">58</option>
+                                <option value="59">59</option>
+                            </select>
+                        </div>
+                        <div class="two columns">
+                            <label for="start-second">Second</label>
+                            <select class="u-full-width" id="start-second" name="start[s]" onchange="updateDateTime('start')">
+                                <option value="00" selected="">00</option>
+                                <option value="01">01</option>
+                                <option value="02">02</option>
+                                <option value="03">03</option>
+                                <option value="04">04</option>
+                                <option value="05">05</option>
+                                <option value="06">06</option>
+                                <option value="07">07</option>
+                                <option value="08">08</option>
+                                <option value="09">09</option>
+                                <option value="10">10</option>
+                                <option value="11">11</option>
+                                <option value="12">12</option>
+                                <option value="13">13</option>
+                                <option value="14">14</option>
+                                <option value="15">15</option>
+                                <option value="16">16</option>
+                                <option value="17">17</option>
+                                <option value="18">18</option>
+                                <option value="19">19</option>
+                                <option value="20">20</option>
+                                <option value="21">21</option>
+                                <option value="22">22</option>
+                                <option value="23">23</option>
+                                <option value="24">24</option>
+                                <option value="25">25</option>
+                                <option value="26">26</option>
+                                <option value="27">27</option>
+                                <option value="28">28</option>
+                                <option value="29">29</option>
+                                <option value="30">30</option>
+                                <option value="31">31</option>
+                                <option value="32">32</option>
+                                <option value="33">33</option>
+                                <option value="34">34</option>
+                                <option value="35">35</option>
+                                <option value="36">36</option>
+                                <option value="37">37</option>
+                                <option value="38">38</option>
+                                <option value="39">39</option>
+                                <option value="40">40</option>
+                                <option value="41">41</option>
+                                <option value="42">42</option>
+                                <option value="43">43</option>
+                                <option value="44">44</option>
+                                <option value="45">45</option>
+                                <option value="46">46</option>
+                                <option value="47">47</option>
+                                <option value="48">48</option>
+                                <option value="49">49</option>
+                                <option value="50">50</option>
+                                <option value="51">51</option>
+                                <option value="52">52</option>
+                                <option value="53">53</option>
+                                <option value="54">54</option>
+                                <option value="55">55</option>
+                                <option value="56">56</option>
+                                <option value="57">57</option>
+                                <option value="58">58</option>
+                                <option value="59">59</option>
+                            </select>
+                        </div>
+                    </div>
+                    <label>End Datetime: <span id="end-datetime">2020-10-03T04:04:01-07:00</span></label>
+                    <div class="row">
+                        <div class="two columns">
+                            <label for="end-year">Year</label>
+                            <input id="end-year" name="end[y]" class="u-full-width" type="number" value="" min="2018" maxlength="4" onchange="updateDateTime('end')">
+                        </div>
+                        <div class="two columns">
+                            <label for="end-month">Month</label>
+                            <select class="u-full-width" id="end-month" name="end[m]" onchange="updateDateTime('end')">
+                                <option value="01">January</option>
+                                <option value="02">February</option>
+                                <option value="03">March</option>
+                                <option value="04">April</option>
+                                <option value="05">May</option>
+                                <option value="06">June</option>
+                                <option value="07">July</option>
+                                <option value="08">August</option>
+                                <option value="09">September</option>
+                                <option value="10">October</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                        </div>
+                        <div class="two columns">
+                            <label for="end-day">Day</label>
+                            <select class="u-full-width" id="end-day" name="end[d]" onchange="updateDateTime('end')">
+                                <option value="01">01</option>
+                                <option value="02">02</option>
+                                <option value="03">03</option>
+                                <option value="04">04</option>
+                                <option value="05">05</option>
+                                <option value="06">06</option>
+                                <option value="07">07</option>
+                                <option value="08">08</option>
+                                <option value="09">09</option>
+                                <option value="10">10</option>
+                                <option value="11">11</option>
+                                <option value="12">12</option>
+                                <option value="13">13</option>
+                                <option value="14">14</option>
+                                <option value="15">15</option>
+                                <option value="16">16</option>
+                                <option value="17">17</option>
+                                <option value="18">18</option>
+                                <option value="19">19</option>
+                                <option value="20">20</option>
+                                <option value="21">21</option>
+                                <option value="22">22</option>
+                                <option value="23">23</option>
+                                <option value="24">24</option>
+                                <option value="25">25</option>
+                                <option value="26">26</option>
+                                <option value="27">27</option>
+                                <option value="28">28</option>
+                                <option value="29">29</option>
+                                <option value="30">30</option>
+                                <option value="31">31</option>
+                            </select>
+                        </div>
+                        <div class="two columns">
+                            <label for="end-hour">Hour</label>
+                            <select class="u-full-width" id="end-hour" name="end[h]" onchange="updateDateTime('end')">
+                                <option value="00" selected="">00</option>
+                                <option value="01">01</option>
+                                <option value="02">02</option>
+                                <option value="03">03</option>
+                                <option value="04">04</option>
+                                <option value="05">05</option>
+                                <option value="06">06</option>
+                                <option value="07">07</option>
+                                <option value="08">08</option>
+                                <option value="09">09</option>
+                                <option value="10">10</option>
+                                <option value="11">11</option>
+                                <option value="12">12</option>
+                                <option value="13">13</option>
+                                <option value="14">14</option>
+                                <option value="15">15</option>
+                                <option value="16">16</option>
+                                <option value="17">17</option>
+                                <option value="18">18</option>
+                                <option value="19">19</option>
+                                <option value="20">20</option>
+                                <option value="21">21</option>
+                                <option value="22">22</option>
+                                <option value="23">23</option>
+                            </select>
+                        </div>
+                        <div class="two columns">
+                            <label for="end-minute">Minute</label>
+                            <select class="u-full-width" id="end-minute" name="end[i]" onchange="updateDateTime('end')">
+                                <option value="00" selected="">00</option>
+                                <option value="01">01</option>
+                                <option value="02">02</option>
+                                <option value="03">03</option>
+                                <option value="04">04</option>
+                                <option value="05">05</option>
+                                <option value="06">06</option>
+                                <option value="07">07</option>
+                                <option value="08">08</option>
+                                <option value="09">09</option>
+                                <option value="10">10</option>
+                                <option value="11">11</option>
+                                <option value="12">12</option>
+                                <option value="13">13</option>
+                                <option value="14">14</option>
+                                <option value="15">15</option>
+                                <option value="16">16</option>
+                                <option value="17">17</option>
+                                <option value="18">18</option>
+                                <option value="19">19</option>
+                                <option value="20">20</option>
+                                <option value="21">21</option>
+                                <option value="22">22</option>
+                                <option value="23">23</option>
+                                <option value="24">24</option>
+                                <option value="25">25</option>
+                                <option value="26">26</option>
+                                <option value="27">27</option>
+                                <option value="28">28</option>
+                                <option value="29">29</option>
+                                <option value="30">30</option>
+                                <option value="31">31</option>
+                                <option value="32">32</option>
+                                <option value="33">33</option>
+                                <option value="34">34</option>
+                                <option value="35">35</option>
+                                <option value="36">36</option>
+                                <option value="37">37</option>
+                                <option value="38">38</option>
+                                <option value="39">39</option>
+                                <option value="40">40</option>
+                                <option value="41">41</option>
+                                <option value="42">42</option>
+                                <option value="43">43</option>
+                                <option value="44">44</option>
+                                <option value="45">45</option>
+                                <option value="46">46</option>
+                                <option value="47">47</option>
+                                <option value="48">48</option>
+                                <option value="49">49</option>
+                                <option value="50">50</option>
+                                <option value="51">51</option>
+                                <option value="52">52</option>
+                                <option value="53">53</option>
+                                <option value="54">54</option>
+                                <option value="55">55</option>
+                                <option value="56">56</option>
+                                <option value="57">57</option>
+                                <option value="58">58</option>
+                                <option value="59">59</option>
+                            </select>
+                        </div>
+                        <div class="two columns">
+                            <label for="end-second">Second</label>
+                            <select class="u-full-width" id="end-second" name="end[s]" onchange="updateDateTime('end')">
+                                <option value="00" selected="">00</option>
+                                <option value="01">01</option>
+                                <option value="02">02</option>
+                                <option value="03">03</option>
+                                <option value="04">04</option>
+                                <option value="05">05</option>
+                                <option value="06">06</option>
+                                <option value="07">07</option>
+                                <option value="08">08</option>
+                                <option value="09">09</option>
+                                <option value="10">10</option>
+                                <option value="11">11</option>
+                                <option value="12">12</option>
+                                <option value="13">13</option>
+                                <option value="14">14</option>
+                                <option value="15">15</option>
+                                <option value="16">16</option>
+                                <option value="17">17</option>
+                                <option value="18">18</option>
+                                <option value="19">19</option>
+                                <option value="20">20</option>
+                                <option value="21">21</option>
+                                <option value="22">22</option>
+                                <option value="23">23</option>
+                                <option value="24">24</option>
+                                <option value="25">25</option>
+                                <option value="26">26</option>
+                                <option value="27">27</option>
+                                <option value="28">28</option>
+                                <option value="29">29</option>
+                                <option value="30">30</option>
+                                <option value="31">31</option>
+                                <option value="32">32</option>
+                                <option value="33">33</option>
+                                <option value="34">34</option>
+                                <option value="35">35</option>
+                                <option value="36">36</option>
+                                <option value="37">37</option>
+                                <option value="38">38</option>
+                                <option value="39">39</option>
+                                <option value="40">40</option>
+                                <option value="41">41</option>
+                                <option value="42">42</option>
+                                <option value="43">43</option>
+                                <option value="44">44</option>
+                                <option value="45">45</option>
+                                <option value="46">46</option>
+                                <option value="47">47</option>
+                                <option value="48">48</option>
+                                <option value="49">49</option>
+                                <option value="50">50</option>
+                                <option value="51">51</option>
+                                <option value="52">52</option>
+                                <option value="53">53</option>
+                                <option value="54">54</option>
+                                <option value="55">55</option>
+                                <option value="56">56</option>
+                                <option value="57">57</option>
+                                <option value="58">58</option>
+                                <option value="59">59</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="six columns">
+                            <input id="button-generate" class="button-primary u-pull-left" type="button" value="Generate Table" disabled>
+                        </div>
+                        <div class="six columns">
+                            <input id="button-download" class="button-primary u-pull-right" type="button" value="Download CSV" disabled>
+                        </div>
+                    </div>
+<!--                    <input id="button-dump" class="button-primary" type="button" value="Dump Values">-->
+                </form>
+            </div>
+            <div id="status-area" style="text-align: center;" class="u-hidden">
+                <b>Please wait...</b>
+            </div>
+            <div id="reward-data" class="u-hidden">
+                <table id="reward-data-table" class="u-full-width">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Device</th>
+                            <th>Block</th>
+                            <th>Reward</th>
+                            <th>Oracle Price</th>
+                            <th>USD Value</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+        <script>
+            // global vars
+            let openConnections = 0;
+            let rewards = [];
+            let gateways = {};
+            let prices = {};
+            let processed = [];
+
+            function updateDateTime(w) {
+                document.getElementById(w + '-datetime').textContent =
+                    document.getElementById(w + '-year').value + '-'
+                    + document.getElementById(w + '-month').value + '-'
+                    + document.getElementById(w + '-day').value + 'T'
+                    + document.getElementById(w + '-hour').value + ':'
+                    + document.getElementById(w + '-minute').value + ':'
+                    + document.getElementById(w + '-second').value
+                    + document.getElementById('timezone').value
+                ;
+            }
+
+            function apiRequest(url, callback) {
+                const xhr = new XMLHttpRequest();
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === XMLHttpRequest.DONE) {
+                        if (xhr.status === 200) {
+                            callback(xhr.responseText, url);
+                        } else {
+                            openConnections = -1;
+                            console.log('call failed: ' + url);
+                            alert('There was a error while fetching reward info.');
+                            document.getElementById('button-download').disabled = true;
+                            document.getElementById('status-area').classList.add('u-hidden');
+                            document.getElementById('button-generate').disabled = false;
+                        }
+                    }
+                }
+                xhr.open("GET", url);
+                xhr.send();
+            }
+
+            function getRewards(address, min_time, max_time) {
+                let url = 'https://api.helium.io/v1/accounts/' + address + '/rewards?max_time=' + max_time + '&min_time=' + min_time;
+                ++openConnections;
+                apiRequest(url, setRewards);
+            }
+
+            function setRewards(response, url) {
+                --openConnections;
+                response = JSON.parse(response);
+                if (response.hasOwnProperty('data')) {
+                    for (let d = 0; d < response.data.length; d++) {
+                        rewards.push(response.data[d]);
+                        if (!gateways.hasOwnProperty(response.data[d].gateway)) {
+                            gateways[response.data[d].gateway] = 'unknown';
+                            getGateway(response.data[d].gateway);
+                        }
+                        if (!prices.hasOwnProperty(response.data[d].block)) {
+                            prices[response.data[d].block] = -1;
+                            getPrice(response.data[d].block);
+                        }
+                    }
+                }
+                if (response.hasOwnProperty('cursor')) {
+                    ++openConnections;
+                    apiRequest(
+                        url.slice(0, url.indexOf('&cursor=')) + '&cursor=' + response.cursor,
+                        setRewards
+                    );
+                } else {
+                    processData();
+                }
+            }
+
+            function getGateway(hash) {
+                ++openConnections;
+                apiRequest('https://api.helium.io/v1/hotspots/' + hash, setGateway);
+            }
+
+            function setGateway(response) {
+                --openConnections;
+                response = JSON.parse(response);
+                gateways[response.data.address] = response.data.name;
+            }
+
+            function getPrice(block) {
+                ++openConnections;
+                apiRequest('https://api.helium.io/v1/oracle/prices/' + block, setPrice);
+            }
+
+            function setPrice(response) {
+                --openConnections;
+                response = JSON.parse(response);
+                prices[response.data.block] = response.data.price;
+            }
+
+            function nearestPreviousPrice(block) {
+                do {
+                    if (prices.hasOwnProperty(block) && prices[block] !== -1) {
+                        return prices[block];
+                    }
+                    --block;
+                } while (block > 0);
+                return null;
+            }
+
+            function roundNumber(number, precision) {
+                let factor = Math.pow(10, precision);
+                let tempNumber = number * factor;
+                let roundedTempNumber = Math.round(tempNumber);
+                return roundedTempNumber / factor;
+            }
+
+            function processData() {
+                if (openConnections > 0) {
+                    // wait for API calls to finish before processing data
+                    console.log("defer: " + openConnections);
+                    setTimeout(function() { processData(); }, 1000);
+                    return;
+                } else if (openConnections < 0) {
+                    // error, don't process
+                    return;
+                }
+
+                document.getElementById('reward-data').classList.remove('u-hidden');
+                for (let r = 0; r < rewards.length; r++) {
+                    let amount = rewards[r].amount / 100000000; // "bones" per HNT
+                    let price = nearestPreviousPrice(rewards[r].block) / 100000000;
+                    // let rObj = {
+                    //     'timestamp': rewards[r].timestamp,
+                    //     'device': gateways[rewards[r].gateway],
+                    //     'block': rewards[r].block,
+                    //     'reward': amount,
+                    //     'price': price,
+                    //     'value': roundNumber(amount * price, 2)
+                    // };
+                    let rArr = [
+                        rewards[r].timestamp,
+                        gateways[rewards[r].gateway],
+                        rewards[r].block,
+                        amount,
+                        price,
+                        roundNumber(amount * price, 2)
+                    ];
+                    processed.push(rArr);
+                    let table = document.getElementById('reward-data-table');
+                    let row = table.insertRow();
+                    for (const [k,v] of Object.entries(rArr)) {
+                        let cell = row.insertCell();
+                        let text = document.createTextNode(v);
+                        cell.appendChild(text);
+                    }
+                }
+                document.getElementById('button-download').disabled = false;
+                document.getElementById('status-area').classList.add('u-hidden');
+                document.getElementById('button-generate').disabled = false;
+            }
+
+            // https://stackoverflow.com/a/29304414/242584
+            function download(content, fileName, mimeType) {
+                let a = document.createElement('a');
+                mimeType = mimeType || 'application/octet-stream';
+
+                if (navigator.msSaveBlob) { // IE10
+                    navigator.msSaveBlob(new Blob([content], {
+                        type: mimeType
+                    }), fileName);
+                } else if (URL && 'download' in a) { // html5 A[download]
+                    a.href = URL.createObjectURL(new Blob([content], {
+                        type: mimeType
+                    }));
+                    a.setAttribute('download', fileName);
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                } else {
+                    // only this mime type is supported
+                    location.href = 'data:application/octet-stream,' + encodeURIComponent(content);
+                }
+            }
+
+            document.getElementById('address').addEventListener('change', function(event) {
+                let elm = document.getElementById('address');
+                document.getElementById('button-generate').disabled = !(elm.checkValidity() && elm.value !== '');
+            }, false);
+
+            // handle generate button click; this starts the whole process
+            document.querySelector('#button-generate').addEventListener('click', function(event) {
+                document.getElementById('status-area').classList.remove('u-hidden');
+                document.getElementById('button-generate').disabled = true;
+                openConnections = 0;
+                rewards = [];
+                processed = [];
+                getRewards(
+                    document.getElementById('address').value,
+                    document.getElementById('start-year').value + '-'
+                        + document.getElementById('start-month').value + '-'
+                        + document.getElementById('start-day').value + 'T'
+                        + document.getElementById('start-hour').value + ':'
+                        + document.getElementById('start-minute').value + ':'
+                        + document.getElementById('start-second').value
+                        + document.getElementById('timezone').value,
+                    document.getElementById('end-year').value + '-'
+                        + document.getElementById('end-month').value + '-'
+                        + document.getElementById('end-day').value + 'T'
+                        + document.getElementById('end-hour').value + ':'
+                        + document.getElementById('end-minute').value + ':'
+                        + document.getElementById('end-second').value
+                        + document.getElementById('timezone').value,
+                );
+                event.preventDefault();
+            }, false);
+
+            document.querySelector('#button-download').addEventListener('click', function(event) {
+                let csvContent = 'Timestamp,Device,Block,Reward,Oracle Price,USD Value\n'; // column headers
+                processed.forEach(function(arr, index) {
+                    let dataString = arr.join(',');
+                    csvContent += index < processed.length ? dataString + '\n' : dataString;
+                });
+                download(csvContent, 'rewards.csv', 'text/csv;encoding:utf-8');
+                event.preventDefault();
+            })
+
+            // document.querySelector("#button-dump").addEventListener("click", function(event) {
+            //     console.log(JSON.stringify(rewards));
+            //     console.log(JSON.stringify(gateways));
+            //     console.log(JSON.stringify(prices));
+            //     console.log(JSON.stringify(processed));
+            //     event.preventDefault();
+            // }, false);
+
+            // set current values
+            let now = new Date();
+            document.getElementById('start-year').value = document.getElementById('end-year').value = now.getFullYear();
+            document.getElementById('start-month').value = ('0' + now.getMonth()).substr(-2);
+            document.getElementById('end-month').value = ('0' + (now.getMonth() + 1)).substr(-2);
+            updateDateTime('start');
+            updateDateTime('end');
+        </script>
+    </body>
+</html>
