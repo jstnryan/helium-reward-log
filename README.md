@@ -2,12 +2,17 @@
 This is a single-page web app, using only vanila JavaScript, which allows for the retrieval and export (as comma-separated-value CSV file) of Helium Network Token (HNT) rewards for an wallet account, generally useful for tax reporting or accounting purposes.
 
 ## Installation
-The application requires no installation. Simply copy the `index.html` file and `css` directory into any local folder, and open `index.html` in a web browser. Alternately, the required files can be served from any webserver.
+The application requires no installation. Simply copy the `index.html` file, `js` and `css` directories into any local folder, and open `index.html` in a web browser. Alternately, the required files can be served from any webserver.
 
 ## Usage
 1. Enter the desired fields into the web form. Minimally required are the Helium wallet _public_ address (**DO NOT ENTER YOUR SEED PHRASE OR PRIVATE ADDRESS**; see 'Security' section). If your accounting is in your local time, adjust the Offset (Timezone) field as necessary. The remainder of the fields default to retrieving all information for the previous calendar month. You may adjust these as you require.
 2. Click `Generate Table`. The application will begin to contact the Helium Public API to retrieve the necessary records. When retrieval is finished, the records will be processesed and shown in the table at the bottom of the page.
 3. Click `Download CSV`. The data in the table will be formatted into a comma separated file ("CSV") and downloaded to your computer. You may then open this file in any spreadsheet application (such as Microsoft Excel, OpenOffice Calc, or Apple Numbers) for more powerful transformations.
+
+### Usage Notes
+* The start datetime is INCLUSIVE while the end datetime is EXCLUSIVE.
+* The "Precision" input field refers to the number of available digits _after_ the decimal point for currency numbers.
+* If you encounter a pop-up message informing that a call has failed, you may re-try the same operation by clicking the "Generate" button again without having to adjust any inputs, nor reloading the page.
 
 ## How do I find my public address?
 Each Helium "account" has one public "owner" address, also sometimes called a "public key." Each hotspot on the helium network also has it's own key; be careful not to confuse them. The public address is 51 alphanumeric characters long, and always begins with the number 1.
