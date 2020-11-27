@@ -1,4 +1,90 @@
+// classes
+
+class binanceQueue {
+    constructor(dataCallback, statusCallback, retryLimit = 3) {
+        let self = this;
+        this.xhr = new XMLHttpRequest();
+        this._queue = [];
+        this._errors = []
+        this._isProcessing = false;
+        this._dataCallback = dataCallback;
+        this._statusCallback = statusCallback;
+        this._retryLimit = retryLimit;
+    }
+
+    push(url) {
+        this._queue.push(url);
+        if (!this._isProcessing) {
+            this.process();
+        }
+    }
+
+    get length() {
+        return this._queue.length;
+    }
+
+    isProcessing() {
+        return this._isProcessing;
+    }
+
+    process() {
+        this._isProcessing = true;
+        let url = this._queue.shift();
+        let xhr = this.xhr;
+        xhr.onreadystatechange = () => {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                switch (xhr.status) {
+                    case 200:
+                        this._dataCallback(xhr.responseText, url);
+                        if (this._queue.length) {
+                            this.process();
+                        }
+                        break;
+                    case 418:
+                        // banned
+                        this.push(url);
+                        this._statusCallback('IP has been banned from the Binance API for too many requests. Please wait '
+                            + xhr.getResponseHeader('Retry-After') + ' seconds before trying again.');
+                        this._isProcessing = false;
+                        break;
+                    case 429:
+                        // violated API rate limits, slow down
+                        this.push(url);
+                        setTimeout(this.process, parseInt(xhr.getResponseHeader('Retry-After')) + 1);
+                        break;
+                    default:
+                        this.push(url);
+                        if (this._errors.hasOwnProperty(url) && this._errors[url] > this._retryLimit) {
+                            this._statusCallback('Retry limit exceeded attempting to retrieve url: ' + url);
+                            this._isProcessing = false;
+                        } else {
+                            if (this._errors.hasOwnProperty(url)) {
+                                ++this._errors[url];
+                            } else {
+                                this._errors[url] = 1;
+                            }
+                            console.log('unknown error fetching from Binance');
+                            this.process();
+                        }
+                }
+            }
+        }
+        if (this._isProcessing) {
+            xhr.open("GET", url);
+            xhr.send();
+        }
+    }
+}
+
 // global vars
+const SOURCE_CURRENCIES = {
+    'binance.us': ['usd', 'usdt'],
+    'coingecko': ['aed', 'ars', 'aud', 'bch', 'bdt', 'bhd', 'bmd', 'bnb', 'brl', 'btc', 'cad', 'chf', 'clp', 'cny',
+        'czk', 'dkk', 'dot', 'eos', 'eth', 'eur', 'gbp', 'hkd', 'huf', 'idr', 'ils', 'inr', 'jpy', 'krw', 'kwd',
+        'lkr', 'ltc', 'mmk', 'mxn', 'myr', 'ngn', 'nok', 'nzd', 'php', 'pkr', 'pln', 'rub', 'sar', 'sek', 'sgd',
+        'thb', 'try', 'twd', 'uah', 'usd', 'vef', 'vnd', 'xag', 'xau', 'xdr', 'xlm', 'xrp', 'yfi', 'zar', 'link'],
+    'oracle': ['usd']
+};
 const retryCount = 3;
 let openConnections = 0;
 let errors = [];
@@ -6,6 +92,8 @@ let rewards = [];
 let gateways = {};
 let prices = {};
 let processed = [];
+
+let queueBinance = new binanceQueue(setPrice, setStatus);
 
 function getNumberOfDaysInMonth(year, month) {
     return new Date(year, month, 0).getDate();
@@ -43,16 +131,12 @@ function updateDateTime(w) {
 function updateAvailableCurrencies(source) {
     let currencyElm = document.getElementById('price-currency');
     let options = currencyElm.getElementsByTagName('option');
-    if (source === 'oracle') {
-        for (let i = 0; i < options.length; i++) {
-            if (options[i].value !== 'usd') {
-                options[i].disabled = true;
-            }
-        }
-        currencyElm.value = 'usd';
-    } else {
-        for (let i = 0; i < options.length; i++) {
-            options[i].disabled = false;
+    let selected = currencyElm.value;
+    for (let i = 0; i < options.length; i++) {
+        options[i].disabled = !SOURCE_CURRENCIES[source].includes(options[i].value);
+        if (options[i].value === selected && options[i].disabled) {
+            // TODO: this will break if any source does not provide USD
+            currencyElm.value = 'usd';
         }
     }
 }
@@ -118,6 +202,17 @@ function setRewards(response, url) {
                         getPrice(response.data[d].block, response.data[d].timestamp);
                     }
                     break;
+                case 'binance':
+                case 'binance.us':
+                    // some crazy math to find the nearest previous day in milliseconds (UTC)
+                    let timestamp = Date.parse(response.data[d].timestamp);
+                    let days = Math.floor(timestamp / (24 * 60 * 60 * 1000)); // no remainder, for whole day count
+                    let day = days * 24 * 60 * 60; // note: do not multiply by milliseconds, because we store in seconds
+                    if (!prices.hasOwnProperty(day)) {
+                        prices[day] = -1;
+                        getPrice(response.data[d].block, response.data[d].timestamp);
+                    }
+                    break;
             }
         }
     }
@@ -153,6 +248,18 @@ function getPrice(block, timestamp) {
                 + date.toLocaleDateString('en', {month: 'numeric'}) + '-'
                 + date.toLocaleDateString('en', {year: 'numeric'});
             break;
+        case 'binance':
+        case 'binance.us':
+            // create epoch timestamp (in ms) and push to binanceQueue; return
+            // https://api.binance.us/api/v3/klines?symbol=HNTUSD&interval=1d&limit=1&startTime=1600884000000&endTime=1600970400000
+            // see setRewards() for an explanation of this math
+            let days = Math.floor(Date.parse(timestamp) / (24 * 60 * 60 * 1000));
+            let startTime = days * 24 * 60 * 60 * 1000;
+            request = 'https://api.binance.us/api/v3/klines?symbol=HNT'
+                + document.getElementById('price-currency').value.toUpperCase()
+                + '&interval=1d&limit=1&startTime=' + startTime + '&endTime=' + (startTime + 86400000);
+            queueBinance.push(request);
+            return;
     }
     apiRequest(request, setPrice);
 }
@@ -161,11 +268,19 @@ function setPrice(response, url) {
     response = JSON.parse(response);
     switch (document.getElementById('price-source').value) {
         case 'oracle':
+            // prices[block] = price
             prices[response.data.block] = response.data.price;
             break;
         case 'coingecko':
+            // prices[DD-MM-YYYY] = price
             url = url.split('date=');
             prices[url[1]] = response['market_data']['current_price'][document.getElementById('price-currency').value];
+            break;
+        case 'binance':
+        case 'binance.us':
+            // prices[epoch(s)] = price
+            // time returned is in milliseconds, convert to seconds for easier searching
+            prices[response[0][0] / 1000] = response[0][4];
             break;
     }
 }
@@ -214,6 +329,13 @@ function processData() {
                     + date.toLocaleDateString('en', {year: 'numeric'});
                 price = prices[dateString];
                 break;
+            case 'binance':
+            case 'binance.us':
+                let timestamp = Date.parse(rewards[r].timestamp);
+                let days = Math.floor(timestamp / (24 * 60 * 60 * 1000)); // no remainder, for whole day count
+                let day = days * 24 * 60 * 60; // note: do not multiply by milliseconds, because we store in seconds
+                price = prices[day];
+                break;
         }
         let rArr = [
             rewards[r].timestamp,                          // timestamp
@@ -258,6 +380,10 @@ function download(content, fileName, mimeType) {
         // only this mime type is supported
         location.href = 'data:application/octet-stream,' + encodeURIComponent(content);
     }
+}
+
+function setStatus(message) {
+    document.getElementById('status-message').textContent = message;
 }
 
 function documentReady(callbackFunc) {

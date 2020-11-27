@@ -11,6 +11,10 @@ The application requires no installation. Simply copy the `index.html` file, `js
 
 ### Usage Notes
 * The start datetime is INCLUSIVE while the end datetime is EXCLUSIVE.
+* Conversion prices (reward fiat values) are precision limited based on the source:
+  * Binance.US: 24h close price (UTC)
+  * Coingecko: 24h close price (UTC)
+  * Oracle: oracle price at the block number of the reward
 * The "Precision" input field refers to the number of available digits _after_ the decimal point for currency numbers.
 * If you encounter a pop-up message informing that a call has failed, you may re-try the same operation by clicking the "Generate" button again without having to adjust any inputs, nor reloading the page.
 

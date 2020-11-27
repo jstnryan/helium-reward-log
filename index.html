@@ -513,8 +513,9 @@
                         <div class="three columns">
                             <label for="price-source">Conversion Source</label>
                             <select id="price-source" name="price-source" class="u-full-width">
-                                <option value="oracle">Helium Oracle</option>
                                 <option value="coingecko">CoinGecko</option>
+                                <option value="binance.us">Binance.US</option>
+                                <option value="oracle" selected>Helium Oracle</option>
                             </select>
                         </div>
                         <div class="two columns">
@@ -569,6 +570,7 @@
                                 <option value="twd">TWD</option>
                                 <option value="uah">UAH</option>
                                 <option value="usd" selected>USD</option>
+                                <option value="usdt">USDT</option>
                                 <option value="vef">VEF</option>
                                 <option value="vnd">VND</option>
                                 <option value="xag">XAG</option>
@@ -609,7 +611,7 @@
                 </form>
             </div>
             <div id="status-area" style="text-align: center;" class="u-hidden">
-                <p><b>Please wait...</b></p>
+                <p><b id="status-message">Please wait...</b></p>
             </div>
             <div id="reward-data" class="u-hidden">
                 <table id="reward-data-table" class="u-full-width">
@@ -630,7 +632,7 @@
                 <span class="u-pull-left">
                     <a href="https://github.com/jstnryan/helium-reward-log">Read about this app and view the code on GitHub.</a>
                 </span>
-                <span id="version" class="u-pull-right">v1.1.0</span>
+                <span id="version" class="u-pull-right">v1.2.0</span>
             </div>
         </div>
     </body>
