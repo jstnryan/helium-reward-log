@@ -194,9 +194,9 @@ function setRewards(response, url) {
                     break;
                 case 'coingecko':
                     let date = new Date(Date.parse(response.data[d].timestamp));
-                    let dateString = date.toLocaleDateString("en", {day: 'numeric'}) + '-'
-                        + date.toLocaleDateString('en', {month: 'numeric'}) + '-'
-                        + date.toLocaleDateString('en', {year: 'numeric'});
+                    let dateString = date.toLocaleDateString("en", {day: 'numeric', timeZone: 'UTC'}) + '-'
+                        + date.toLocaleDateString('en', {month: 'numeric', timeZone: 'UTC'}) + '-'
+                        + date.toLocaleDateString('en', {year: 'numeric', timeZone: 'UTC'});
                     if (!prices.hasOwnProperty(dateString)) {
                         prices[dateString] = -1;
                         getPrice(response.data[d].block, response.data[d].timestamp);
@@ -244,9 +244,9 @@ function getPrice(block, timestamp) {
         case 'coingecko':
             let date = new Date(Date.parse(timestamp));
             request = 'https://api.coingecko.com/api/v3/coins/helium/history?date='
-                + date.toLocaleDateString("en", {day: 'numeric'}) + '-'
-                + date.toLocaleDateString('en', {month: 'numeric'}) + '-'
-                + date.toLocaleDateString('en', {year: 'numeric'});
+                + date.toLocaleDateString("en", {day: 'numeric', timeZone: 'UTC'}) + '-'
+                + date.toLocaleDateString('en', {month: 'numeric', timeZone: 'UTC'}) + '-'
+                + date.toLocaleDateString('en', {year: 'numeric', timeZone: 'UTC'});
             break;
         case 'binance':
         case 'binance.us':
@@ -324,9 +324,9 @@ function processData() {
                 break;
             case 'coingecko':
                 let date = new Date(Date.parse(rewards[r].timestamp));
-                let dateString = date.toLocaleDateString("en", {day: 'numeric'}) + '-'
-                    + date.toLocaleDateString('en', {month: 'numeric'}) + '-'
-                    + date.toLocaleDateString('en', {year: 'numeric'});
+                let dateString = date.toLocaleDateString("en", {day: 'numeric', timeZone: 'UTC'}) + '-'
+                    + date.toLocaleDateString('en', {month: 'numeric', timeZone: 'UTC'}) + '-'
+                    + date.toLocaleDateString('en', {year: 'numeric', timeZone: 'UTC'});
                 price = prices[dateString];
                 break;
             case 'binance':
