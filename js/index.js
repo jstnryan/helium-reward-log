@@ -456,7 +456,7 @@ documentReady(() => {
     }, false);
 
     document.querySelector('#button-download').addEventListener('click', function(event) {
-        let csvContent = 'Timestamp,Device,Block,Reward,Oracle Price,USD Value\n'; // column headers
+        let csvContent = 'Timestamp,Device,Block,Reward,Price,Value\n'; // column headers
         processed.forEach(function(arr, index) {
             let dataString = arr.join(',');
             csvContent += index < processed.length ? dataString + '\n' : dataString;
