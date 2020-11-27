@@ -356,6 +356,10 @@ th:last-child,
 td:last-child {
   padding-right: 0; }
 
+tbody tr:hover {
+  background-color: rgba(51,195,240,0.2);
+}
+
 
 /* Spacing
 –––––––––––––––––––––––––––––––––––––––––––––––––– */

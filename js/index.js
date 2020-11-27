@@ -1,20 +1,58 @@
 // classes
-
 class binanceQueue {
     constructor(dataCallback, statusCallback, retryLimit = 3) {
-        let self = this;
-        this.xhr = new XMLHttpRequest();
         this._queue = [];
         this._errors = []
-        this._isProcessing = false;
+        this._state = 0;
         this._dataCallback = dataCallback;
         this._statusCallback = statusCallback;
         this._retryLimit = retryLimit;
+
+        this.xhr = new XMLHttpRequest();
+        this.xhr.onreadystatechange = () => {
+            if (this.xhr.readyState === XMLHttpRequest.DONE) {
+                switch (this.xhr.status) {
+                    case 200:
+                        this._dataCallback(this.xhr.responseText, this.xhr.responseURL);
+                        if (this._queue.length) {
+                            this.process();
+                        } else {
+                            this._state = 0;
+                        }
+                        break;
+                    case 418:
+                        // banned
+                        this.push(this.xhr.responseURL);
+                        this._statusCallback('IP has been banned from the Binance API for too many requests. Please wait '
+                            + this.xhr.getResponseHeader('Retry-After') + ' seconds before trying again.');
+                        this._state = -1;
+                        break;
+                    case 429:
+                        // violated API rate limits, slow down
+                        this.push(this.xhr.responseURL);
+                        setTimeout(this.process, parseInt(this.xhr.getResponseHeader('Retry-After')) + 1);
+                        break;
+                    default:
+                        this.push(this.xhr.responseURL);
+                        if (this._errors.hasOwnProperty(this.xhr.responseURL) && this._errors[this.xhr.responseURL] > this._retryLimit) {
+                            this._statusCallback('Retry limit exceeded attempting to retrieve url: ' + this.xhr.responseURL);
+                            this._state = -1;
+                        } else {
+                            if (this._errors.hasOwnProperty(this.xhr.responseURL)) {
+                                ++this._errors[this.xhr.responseURL];
+                            } else {
+                                this._errors[this.xhr.responseURL] = 1;
+                            }
+                            this.process();
+                        }
+                }
+            }
+        }
     }
 
     push(url) {
         this._queue.push(url);
-        if (!this._isProcessing) {
+        if (this._state === 0) {
             this.process();
         }
     }
@@ -23,56 +61,17 @@ class binanceQueue {
         return this._queue.length;
     }
 
-    isProcessing() {
-        return this._isProcessing;
+    state() {
+        return this._state;
     }
 
     process() {
-        this._isProcessing = true;
+        this._state = 1;
         let url = this._queue.shift();
         let xhr = this.xhr;
-        xhr.onreadystatechange = () => {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                switch (xhr.status) {
-                    case 200:
-                        this._dataCallback(xhr.responseText, url);
-                        if (this._queue.length) {
-                            this.process();
-                        }
-                        break;
-                    case 418:
-                        // banned
-                        this.push(url);
-                        this._statusCallback('IP has been banned from the Binance API for too many requests. Please wait '
-                            + xhr.getResponseHeader('Retry-After') + ' seconds before trying again.');
-                        this._isProcessing = false;
-                        break;
-                    case 429:
-                        // violated API rate limits, slow down
-                        this.push(url);
-                        setTimeout(this.process, parseInt(xhr.getResponseHeader('Retry-After')) + 1);
-                        break;
-                    default:
-                        this.push(url);
-                        if (this._errors.hasOwnProperty(url) && this._errors[url] > this._retryLimit) {
-                            this._statusCallback('Retry limit exceeded attempting to retrieve url: ' + url);
-                            this._isProcessing = false;
-                        } else {
-                            if (this._errors.hasOwnProperty(url)) {
-                                ++this._errors[url];
-                            } else {
-                                this._errors[url] = 1;
-                            }
-                            console.log('unknown error fetching from Binance');
-                            this.process();
-                        }
-                }
-            }
-        }
-        if (this._isProcessing) {
-            xhr.open("GET", url);
-            xhr.send();
-        }
+        //let xhr = new XMLHttpRequest();
+        this.xhr.open("GET", url);
+        this.xhr.send();
     }
 }
 
@@ -303,12 +302,14 @@ function roundNumber(number, precision) {
 }
 
 function processData() {
-    if (openConnections > 0) {
+    if (openConnections > 0 || queueBinance.state() > 0) {
         // wait for API calls to finish before processing data
         setTimeout(function() { processData(); }, 1000);
         return;
-    } else if (openConnections < 0) {
-        // error, don't process
+    } else if (openConnections < 0 || queueBinance.state() < 0) {
+        setStatus('An error was encountered. Please retry your search.');
+        document.getElementById('button-download').disabled = true;
+        document.getElementById('button-generate').disabled = false;
         return;
     }
 
@@ -474,4 +475,5 @@ documentReady(() => {
     updateDateTime('start');
     updateDateTime('end');
     updateAvailableCurrencies(document.getElementById('price-source').value);
+    document.getElementById('address').focus();
 });
