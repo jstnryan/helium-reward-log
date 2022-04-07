@@ -4,6 +4,7 @@ class requestQueue {
         this._queue = []; // [{url:string, callback:function}]
         this._errors = {}; // {url:n, ...} where n is the number of times url returned an error
         this._state = 0; // 1: processing, 0: idle, -1: error
+        this._statusCallback = statusCallback;
         this._retryLimit = retryLimit;
 
         this.currentUrl = null;
@@ -28,7 +29,7 @@ class requestQueue {
                         // non-rate-limit error
                         this.push({url: this.currentUrl, callback: this.currentCallback});
                         if (this._errors.hasOwnProperty(this.xhr.responseURL) && this._errors[this.xhr.responseURL] > this._retryLimit) {
-                            this._statusCallback('Retry limit exceeded attempting to retrieve url: ' + this.xhr.responseURL);
+                            this._statusCallback('Retry limit exceeded attempting to retrieve url: ' + this.currentUrl);
                             this._state = -1;
                         } else {
                             if (this._errors.hasOwnProperty(this.xhr.responseURL)) {
@@ -151,8 +152,6 @@ class binanceQueue {
     process() {
         this._state = 1;
         let url = this._queue.shift();
-        let xhr = this.xhr;
-        //let xhr = new XMLHttpRequest();
         this.xhr.open("GET", url);
         this.xhr.send();
     }
@@ -220,6 +219,33 @@ function updateAvailableCurrencies(source) {
             currencyElm.value = 'usd';
         }
     }
+}
+
+function toggleColumnVisibility(column, show = true) {
+    // table header
+    let header = document
+        .getElementById('reward-data-table')
+        .getElementsByTagName('thead')[0]
+        .getElementsByTagName('tr')[0]
+        .getElementsByTagName('th')[column]
+    ;
+    if (show) {
+        header.classList.remove('u-hidden');
+    } else {
+        header.classList.add('u-hidden');
+    }
+    // data columns
+    [...(
+        document
+            .getElementById('reward-data-rows')
+            .getElementsByTagName('tr')
+    )].forEach(row => {
+        if (show) {
+            row.children[column].classList.remove('u-hidden');
+        } else {
+            row.children[column].classList.add('u-hidden');
+        }
+    });
 }
 
 function getRewards(address, min_time, max_time) {
@@ -368,6 +394,7 @@ function processData() {
         return;
     }
 
+    document.getElementById('reward-toggles').classList.remove('u-hidden');
     document.getElementById('reward-data').classList.remove('u-hidden');
     let priceSource = document.getElementById('price-source').value;
     let precision = document.getElementById('price-precision').value;
@@ -397,9 +424,11 @@ function processData() {
             rewards[r].timestamp,                          // timestamp
             gateways[rewards[r].gateway],                  // device
             rewards[r].block,                              // block
-            amount,                                        // reward
-            roundNumber(price, precision),                 // price
-            roundNumber(amount * price, precision) // value
+            rewards[r].type,                               // type ("poc_witness" etcetera..)
+            rewards[r].hash,                               // TX hash
+            amount,                                        // reward (in HNT)
+            roundNumber(price, precision),                 // price (of 1 HNT in currency)
+            roundNumber(amount * price, precision) // value (in currency)
         ];
         processed.push(rArr);
         let table = document.getElementById('reward-data-rows');
@@ -410,6 +439,9 @@ function processData() {
             cell.appendChild(text);
         }
     }
+    [...(document.getElementsByClassName('columnToggle'))].forEach(el => {
+        toggleColumnVisibility(el.value, el.checked)
+    });
     document.getElementById('button-download').disabled = false;
     document.getElementById('status-area').classList.add('u-hidden');
     document.getElementById('button-generate').disabled = false;
@@ -490,6 +522,7 @@ documentReady(() => {
     // handle generate button click; this starts the whole process
     buttonGenerate.addEventListener('click', function(event) {
         buttonGenerate.disabled = true;
+        document.getElementById('reward-toggles').classList.add('u-hidden');
         document.getElementById('reward-data').classList.add('u-hidden');
         let tBody = document.getElementById('reward-data-rows');
         while(tBody.lastChild) {
@@ -519,14 +552,19 @@ documentReady(() => {
     }, false);
 
     document.getElementById('button-download').addEventListener('click', function(event) {
-        let csvContent = 'Timestamp,Device,Block,Reward,Price,Value\n'; // column headers
+        let csvContent = 'Timestamp,Device,Block,Type,TX Hash,Reward,Price,Value\n'; // column headers
         processed.forEach(function(arr, index) {
             let dataString = arr.join(',');
             csvContent += index < processed.length ? dataString + '\n' : dataString;
         });
         download(csvContent, 'rewards.csv', 'text/csv;encoding:utf-8');
         event.preventDefault();
-    })
+    });
+
+    // handle checkbox click for show/hide columns
+    [...(document.querySelectorAll('.columnToggle'))].forEach(el => el.addEventListener('change', (e) => {
+        toggleColumnVisibility(e.target.value, e.target.checked)
+    }));
 
     // set current values
     let now = new Date();

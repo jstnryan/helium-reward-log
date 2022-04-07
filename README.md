@@ -16,7 +16,6 @@ The application requires no installation. Simply copy the `index.html` file, `js
   * Coingecko: 24h close price (UTC)
   * Oracle: oracle price at the block number of the reward
 * The "Precision" input field refers to the number of available digits _after_ the decimal point for currency numbers.
-* If you encounter a pop-up message informing that a call has failed, you may re-try the same operation by clicking the "Generate" button again without having to adjust any inputs, nor reloading the page.
 
 ## How do I find my public address?
 Each Helium "account" has one public "owner" address, also sometimes called a "public key." Each hotspot on the helium network also has it's own key; be careful not to confuse them. The public address is 51 alphanumeric characters long, and always begins with the number 1.
