@@ -460,9 +460,18 @@ function documentReady(callbackFunc) {
 }
 
 documentReady(() => {
+    // elements
+    let inputAddress = document.getElementById('address');
+    let buttonGenerate = document.getElementById('button-generate');
+    let inputStartYear = document.getElementById('start-year');
+    let inputStartMonth = document.getElementById('start-month');
+    let inputEndYear = document.getElementById('end-year');
+    let inputEndMonth = document.getElementById('end-month');
+    let inputPriceSource = document.getElementById('price-source');
+
     // en-/dis-able the submit button if we don't have a valid public key
-    document.getElementById('address').addEventListener('change', function(event) {
-        document.getElementById('button-generate').disabled = !(event.target.checkValidity() && event.target.value !== '');
+    inputAddress.addEventListener('input', function(event) {
+        buttonGenerate.disabled = !(event.target.checkValidity() && event.target.value !== '');
     }, false);
 
     // update datetime strings as values are updated
@@ -470,17 +479,17 @@ documentReady(() => {
     document.querySelectorAll('.datetime-end').forEach(el => el.addEventListener('change', ()=>{updateDateTime('end');}));
 
     // modify day options based on year and month selected
-    document.getElementById('start-year').addEventListener('change', ()=>{updateDaysInMonth('start');}, false);
-    document.getElementById('end-year').addEventListener('change', ()=>{updateDaysInMonth('end');}, false);
-    document.getElementById('start-month').addEventListener('change', ()=>{updateDaysInMonth('start');}, false);
-    document.getElementById('end-month').addEventListener('change', ()=>{updateDaysInMonth('end');}, false);
+    inputStartYear.addEventListener('change', ()=>{updateDaysInMonth('start');}, false);
+    inputEndYear.addEventListener('change', ()=>{updateDaysInMonth('end');}, false);
+    inputStartMonth.addEventListener('change', ()=>{updateDaysInMonth('start');}, false);
+    inputEndMonth.addEventListener('change', ()=>{updateDaysInMonth('end');}, false);
 
     // en-/dis-able available currency options appropriately
-    document.getElementById('price-source').addEventListener('change', (event)=>{updateAvailableCurrencies(event.target.value);}, false);
+    inputPriceSource.addEventListener('change', (event)=>{updateAvailableCurrencies(event.target.value);}, false);
 
     // handle generate button click; this starts the whole process
-    document.querySelector('#button-generate').addEventListener('click', function(event) {
-        document.getElementById('button-generate').disabled = true;
+    buttonGenerate.addEventListener('click', function(event) {
+        buttonGenerate.disabled = true;
         document.getElementById('reward-data').classList.add('u-hidden');
         let tBody = document.getElementById('reward-data-rows');
         while(tBody.lastChild) {
@@ -490,16 +499,16 @@ documentReady(() => {
         rewards = [];
         processed = [];
         getRewards(
-            document.getElementById('address').value,
-            document.getElementById('start-year').value + '-'
-            + document.getElementById('start-month').value + '-'
+            inputAddress.value,
+            inputStartYear.value + '-'
+            + inputStartMonth.value + '-'
             + document.getElementById('start-day').value + 'T'
             + document.getElementById('start-hour').value + ':'
             + document.getElementById('start-minute').value + ':'
             + document.getElementById('start-second').value
             + document.getElementById('timezone').value,
-            document.getElementById('end-year').value + '-'
-            + document.getElementById('end-month').value + '-'
+            inputEndYear.value + '-'
+            + inputEndMonth.value + '-'
             + document.getElementById('end-day').value + 'T'
             + document.getElementById('end-hour').value + ':'
             + document.getElementById('end-minute').value + ':'
@@ -509,7 +518,7 @@ documentReady(() => {
         event.preventDefault();
     }, false);
 
-    document.querySelector('#button-download').addEventListener('click', function(event) {
+    document.getElementById('button-download').addEventListener('click', function(event) {
         let csvContent = 'Timestamp,Device,Block,Reward,Price,Value\n'; // column headers
         processed.forEach(function(arr, index) {
             let dataString = arr.join(',');
@@ -521,13 +530,13 @@ documentReady(() => {
 
     // set current values
     let now = new Date();
-    document.getElementById('start-year').value = document.getElementById('end-year').value = now.getFullYear();
-    document.getElementById('start-month').value = ('0' + now.getMonth()).substr(-2);
-    document.getElementById('end-month').value = ('0' + (now.getMonth() + 1)).substr(-2);
+    inputStartYear.value = inputEndYear.value = now.getFullYear();
+    inputStartMonth.value = ('0' + now.getMonth()).substring(-2);
+    inputEndMonth.value = ('0' + (now.getMonth() + 1)).substring(-2);
     updateDaysInMonth('start');
     updateDaysInMonth('end');
     updateDateTime('start');
     updateDateTime('end');
-    updateAvailableCurrencies(document.getElementById('price-source').value);
-    document.getElementById('address').focus();
+    updateAvailableCurrencies(inputPriceSource.value);
+    inputAddress.focus();
 });
