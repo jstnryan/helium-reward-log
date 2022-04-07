@@ -1,4 +1,87 @@
 // classes
+class requestQueue {
+    constructor(statusCallback, retryLimit = 3) {
+        this._queue = []; // [{url:string, callback:function}]
+        this._errors = {}; // {url:n, ...} where n is the number of times url returned an error
+        this._state = 0; // 1: processing, 0: idle, -1: error
+        this._retryLimit = retryLimit;
+
+        this.currentUrl = null;
+        this.currentCallback = null;
+
+        this.xhr = new XMLHttpRequest();
+        this.xhr.onreadystatechange = () => {
+            if (this.xhr.readyState === XMLHttpRequest.DONE) {
+                switch (this.xhr.status) {
+                    case 200:
+                        // ok
+                        this.currentCallback(this.xhr.responseText, this.currentUrl);
+                        this.process();
+                        break;
+                    case 429:
+                        // rate-limit error
+                        this.push({url: this.currentUrl, callback: this.currentCallback});
+                        this._statusCallback('Polling API too fast; temporarily slowing down.');
+                        setTimeout(this.process, Math.random() * 1000);
+                        break;
+                    default:
+                        // non-rate-limit error
+                        this.push({url: this.currentUrl, callback: this.currentCallback});
+                        if (this._errors.hasOwnProperty(this.xhr.responseURL) && this._errors[this.xhr.responseURL] > this._retryLimit) {
+                            this._statusCallback('Retry limit exceeded attempting to retrieve url: ' + this.xhr.responseURL);
+                            this._state = -1;
+                        } else {
+                            if (this._errors.hasOwnProperty(this.xhr.responseURL)) {
+                                ++this._errors[this.xhr.responseURL];
+                            } else {
+                                this._errors[this.xhr.responseURL] = 1;
+                            }
+                            this.process();
+                        }
+                        break;
+                }
+            }
+        }
+    }
+
+    push(obj) {
+        if (!(obj.hasOwnProperty('url') && obj.hasOwnProperty('callback'))) {
+            return false;
+        }
+        this._queue.push(obj);
+        if (this._state === 0) {
+            this.process();
+        }
+        return true;
+    }
+
+    get isProcessing() {
+        return this._queue.length && this._state > 0;
+    }
+
+    get isError() {
+        return this._state < 0;
+    }
+
+    process() {
+        if (this._state < 0) return;
+
+        this.currentUrl = null;
+        this.currentCallback = null;
+
+        if (this._queue.length) {
+            this._state = 1;
+            let currentObj = this._queue.shift();
+            this.currentUrl = currentObj.url;
+            this.currentCallback = currentObj.callback;
+            this.xhr.open("GET", this.currentUrl);
+            this.xhr.send();
+        } else {
+            this._state = 0;
+        }
+    }
+}
+
 class binanceQueue {
     constructor(dataCallback, statusCallback, retryLimit = 3) {
         this._queue = [];
@@ -85,14 +168,13 @@ const SOURCE_CURRENCIES = {
     'oracle': ['usd']
 };
 const retryCount = 3;
-let openConnections = 0;
-let errors = [];
 let rewards = [];
 let gateways = {};
 let prices = {};
 let processed = [];
 
-let queueBinance = new binanceQueue(setPrice, setStatus);
+let queueRequest = new requestQueue(setStatus, retryCount);
+let queueBinance = new binanceQueue(setPrice, setStatus, retryCount);
 
 function getNumberOfDaysInMonth(year, month) {
     return new Date(year, month, 0).getDate();
@@ -140,39 +222,9 @@ function updateAvailableCurrencies(source) {
     }
 }
 
-function apiRequest(url, callback) {
-    const xhr = new XMLHttpRequest();
-    xhr.onreadystatechange = function() {
-        if (xhr.readyState === XMLHttpRequest.DONE) {
-            if (xhr.status === 200) {
-                --openConnections;
-                callback(xhr.responseText, url);
-            } else {
-                openConnections = -1;
-                if (errors.hasOwnProperty(url) && errors[url] >= retryCount) {
-                    alert('There was a error while fetching reward info.');
-                    document.getElementById('button-download').disabled = true;
-                    document.getElementById('status-area').classList.add('u-hidden');
-                    document.getElementById('button-generate').disabled = false;
-                } else {
-                    if (errors.hasOwnProperty(url)) {
-                        ++errors[url];
-                    } else {
-                        errors[url] = 1;
-                    }
-                    apiRequest(url, callback);
-                }
-            }
-        }
-    }
-    ++openConnections;
-    xhr.open("GET", url);
-    xhr.send();
-}
-
 function getRewards(address, min_time, max_time) {
-    let url = 'https://api.helium.io/v1/accounts/' + address + '/rewards?max_time=' + max_time + '&min_time=' + min_time;
-    apiRequest(url, setRewards);
+    let addr = 'https://api.helium.io/v1/accounts/' + address + '/rewards?max_time=' + max_time + '&min_time=' + min_time;
+    queueRequest.push({url: addr, callback: setRewards});
 }
 
 function setRewards(response, url) {
@@ -216,17 +268,20 @@ function setRewards(response, url) {
         }
     }
     if (response.hasOwnProperty('cursor')) {
-        apiRequest(
-            url.slice(0, url.indexOf('&cursor=')) + '&cursor=' + response.cursor,
-            setRewards
-        );
+        queueRequest.push({
+            url: url.slice(0, url.indexOf('&cursor=')) + '&cursor=' + response.cursor,
+            callback: setRewards
+        });
     } else {
         processData();
     }
 }
 
 function getGateway(hash) {
-    apiRequest('https://api.helium.io/v1/hotspots/' + hash, setGateway);
+    queueRequest.push({
+        url: 'https://api.helium.io/v1/hotspots/' + hash,
+        callback: setGateway
+    });
 }
 
 function setGateway(response) {
@@ -260,7 +315,7 @@ function getPrice(block, timestamp) {
             queueBinance.push(request);
             return;
     }
-    apiRequest(request, setPrice);
+    queueRequest.push({url: request, callback: setPrice})
 }
 
 function setPrice(response, url) {
@@ -302,11 +357,11 @@ function roundNumber(number, precision) {
 }
 
 function processData() {
-    if (openConnections > 0 || queueBinance.state() > 0) {
+    if (queueRequest.isProcessing || queueBinance.state() > 0) {
         // wait for API calls to finish before processing data
         setTimeout(function() { processData(); }, 1000);
         return;
-    } else if (openConnections < 0 || queueBinance.state() < 0) {
+    } else if (queueRequest.isError || queueBinance.state() < 0) {
         setStatus('An error was encountered. Please retry your search.');
         document.getElementById('button-download').disabled = true;
         document.getElementById('button-generate').disabled = false;
@@ -432,7 +487,6 @@ documentReady(() => {
             tBody.removeChild(tBody.lastChild);
         }
         document.getElementById('status-area').classList.remove('u-hidden');
-        openConnections = 0;
         rewards = [];
         processed = [];
         getRewards(
