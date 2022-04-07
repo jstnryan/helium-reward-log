@@ -608,18 +608,80 @@
                             <input id="button-download" class="button-primary u-pull-right" type="button" value="Download CSV" disabled>
                         </div>
                     </div>
+                    <div class="row">
+                        <div class="twelve columns">
+                            <label>&nbsp;</label>
+                        </div>
+                    </div>
                 </form>
             </div>
             <div id="status-area" style="text-align: center;" class="u-hidden">
                 <p><b id="status-message">Please wait...</b></p>
             </div>
-            <div id="reward-data" class="u-hidden">
+            <div id="reward-toggles" class="u-hidden">
+                <label>Show / Hide Columns:</label>
+                <div class="row">
+                    <div class="three columns">
+                        <label>
+                            <input class="columnToggle" type="checkbox" value="0" checked>
+                            <span class="label-body">Timestamp</span>
+                        </label>
+                    </div>
+                    <div class="three columns">
+                        <label>
+                            <input class="columnToggle" type="checkbox" value="1" checked>
+                            <span class="label-body">Device</span>
+                        </label>
+                    </div>
+                    <div class="three columns">
+                        <label>
+                            <input class="columnToggle" type="checkbox" value="2" checked>
+                            <span class="label-body">Block</span>
+                        </label>
+                    </div>
+                    <div class="three columns">
+                        <label>
+                            <input class="columnToggle" type="checkbox" value="3">
+                            <span class="label-body">Type</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="three columns">
+                        <label>
+                            <input class="columnToggle" type="checkbox" value="4">
+                            <span class="label-body">TX Hash</span>
+                        </label>
+                    </div>
+                    <div class="three columns">
+                        <label>
+                            <input class="columnToggle" type="checkbox" value="5" checked>
+                            <span class="label-body">Reward</span>
+                        </label>
+                    </div>
+                    <div class="three columns">
+                        <label>
+                            <input class="columnToggle" type="checkbox" value="6" checked>
+                            <span class="label-body">Price</span>
+                        </label>
+                    </div>
+                    <div class="three columns">
+                        <label>
+                            <input class="columnToggle" type="checkbox" value="7" checked>
+                            <span class="label-body">Value</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div id="reward-data" style="overflow:scroll;" class="u-hidden">
                 <table id="reward-data-table" class="u-full-width">
                     <thead>
                         <tr>
                             <th>Timestamp</th>
                             <th>Device</th>
                             <th>Block</th>
+                            <th>Type</th>
+                            <th>TX Hash</th>
                             <th>Reward</th>
                             <th>Price</th>
                             <th>Value</th>
@@ -632,7 +694,7 @@
                 <span class="u-pull-left">
                     <a href="https://github.com/jstnryan/helium-reward-log">Read about this app and view the code on GitHub.</a>
                 </span>
-                <span id="version" class="u-pull-right">v1.3.1</span>
+                <span id="version" class="u-pull-right">v1.4.0</span>
             </div>
         </div>
     </body>
