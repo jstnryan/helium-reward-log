@@ -1,14 +1,17 @@
 // classes
 class requestQueue {
-    constructor(statusCallback, retryLimit = 3) {
+    constructor(statusCallback, incrementCallback, retryLimit = 3) {
         this._queue = []; // [{url:string, callback:function}]
         this._errors = {}; // {url:n, ...} where n is the number of times url returned an error
         this._state = 0; // 1: processing, 0: idle, -1: error
         this._statusCallback = statusCallback;
+        this._incrementCallback = incrementCallback;
         this._retryLimit = retryLimit;
 
         this.currentUrl = null;
         this.currentCallback = null;
+
+        this.previousError = 0;
 
         this.xhr = new XMLHttpRequest();
         this.xhr.onreadystatechange = () => {
@@ -23,7 +26,8 @@ class requestQueue {
                         // rate-limit error
                         this.push({url: this.currentUrl, callback: this.currentCallback});
                         this._statusCallback('Polling API too fast; temporarily slowing down.');
-                        setTimeout(this.process, Math.random() * 1000);
+                        this.previousError++;
+                        this.process();
                         break;
                     default:
                         // non-rate-limit error
@@ -43,6 +47,12 @@ class requestQueue {
                 }
             }
         }
+    }
+
+    reset() {
+        this._queue = [];
+        this._errors = {};
+        this._state = 0;
     }
 
     push(obj) {
@@ -76,7 +86,25 @@ class requestQueue {
             this.currentUrl = currentObj.url;
             this.currentCallback = currentObj.callback;
             this.xhr.open("GET", this.currentUrl);
-            this.xhr.send();
+            // The Helium API rate-limits by removing the 'Access-Control-Allow-Origin' header from the OPTIONS request.
+            // Browsers do not return this information to JavaScript, so it must be handled as an "unknown" error.
+            this.xhr.onerror = () => {
+                this._statusCallback('Polling API too fast; temporarily slowing down.');
+                this.push({url: this.currentUrl, callback: this.currentCallback});
+                // After 5 CORS errors, Chrome will simply stop processing requests
+                if (++this.previousError > 4) {
+                    this._statusCallback('Too many failed requests. Try a reduced timespan.');
+                }
+            }
+            if (this.previousError > 0) {
+                setTimeout(
+                    () => { this.xhr.send(); this._incrementCallback(); },
+                    ((this.previousError - 1) * 150) + 250
+                );
+            } else {
+                this.xhr.send();
+                this._incrementCallback();
+            }
         } else {
             this._state = 0;
         }
@@ -84,12 +112,13 @@ class requestQueue {
 }
 
 class binanceQueue {
-    constructor(dataCallback, statusCallback, retryLimit = 3) {
+    constructor(dataCallback, statusCallback, incrementCallback, retryLimit = 3) {
         this._queue = [];
         this._errors = []
         this._state = 0;
         this._dataCallback = dataCallback;
         this._statusCallback = statusCallback;
+        this._incrementCallback = incrementCallback;
         this._retryLimit = retryLimit;
 
         this.xhr = new XMLHttpRequest();
@@ -134,6 +163,12 @@ class binanceQueue {
         }
     }
 
+    reset() {
+        this._queue = [];
+        this._errors = []
+        this._state = 0;
+    }
+
     push(url) {
         this._queue.push(url);
         if (this._state === 0) {
@@ -154,6 +189,7 @@ class binanceQueue {
         let url = this._queue.shift();
         this.xhr.open("GET", url);
         this.xhr.send();
+        this._incrementCallback();
     }
 }
 
@@ -172,8 +208,8 @@ let gateways = {};
 let prices = {};
 let processed = [];
 
-let queueRequest = new requestQueue(setStatus, retryCount);
-let queueBinance = new binanceQueue(setPrice, setStatus, retryCount);
+let queueRequest = new requestQueue(setStatusMessage, incrementStatusCount, retryCount);
+let queueBinance = new binanceQueue(setPrice, setStatusMessage, incrementStatusCount, retryCount);
 
 function getNumberOfDaysInMonth(year, month) {
     return new Date(year, month, 0).getDate();
@@ -388,8 +424,10 @@ function processData() {
         setTimeout(function() { processData(); }, 1000);
         return;
     } else if (queueRequest.isError || queueBinance.state() < 0) {
-        setStatus('An error was encountered. Please retry your search.');
+        setStatusMessage('An error was encountered. Please retry your search.');
         document.getElementById('button-download').disabled = true;
+        queueRequest.reset();
+        queueBinance.reset();
         document.getElementById('button-generate').disabled = false;
         return;
     }
@@ -444,6 +482,10 @@ function processData() {
     });
     document.getElementById('button-download').disabled = false;
     document.getElementById('status-area').classList.add('u-hidden');
+    document.getElementById('status-requests').textContent = '0';
+    document.getElementById('status-message').textContent = 'Please wait...';
+    queueRequest.reset();
+    queueBinance.reset();
     document.getElementById('button-generate').disabled = false;
 }
 
@@ -470,7 +512,12 @@ function download(content, fileName, mimeType) {
     }
 }
 
-function setStatus(message) {
+function incrementStatusCount(addCount = 1) {
+    let elm = document.getElementById('status-requests');
+    elm.textContent = (parseInt(elm.textContent) + addCount).toString();
+}
+
+function setStatusMessage(message) {
     document.getElementById('status-message').textContent = message;
 }
 

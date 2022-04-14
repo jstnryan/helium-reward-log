@@ -446,3 +446,37 @@ there.
 
 /* Larger than Desktop HD */
 @media (min-width: 1200px) {}
+
+
+/* Custom
+–––––––––––––––––––––––––––––––––––––––––––––––––– */
+.notify {
+  border: 1px solid #E1E1E1;
+  border-radius: 4px;
+  margin-bottom: 25px;
+  padding: 25px;
+}
+.notify-icon {
+  float: left;
+  height: 24px;
+  margin-right: 16px;
+  width: 24px;
+}
+.notify-content {
+  margin-left: 40px;
+}
+.notify-content *:last-child {
+  margin-bottom: 0;
+}
+.info {
+  background-color: rgba(243, 192, 51, 0.2);
+}
+.notify.info {
+  fill: #F3C033;
+}
+.warn {
+  background-color: rgba(239, 52, 30, 0.2);
+}
+.notify.warn {
+  fill: #EF341E;
+}
