@@ -1,6 +1,8 @@
 # Helium Reward Log
 This is a single-page web app, using only vanila JavaScript, which allows for the retrieval and export (as comma-separated-value CSV file) of Helium Network Token (HNT) rewards for an wallet account, generally useful for tax reporting or accounting purposes.
 
+**In April 2023 the Helium Network migrated from its own proprietary blockchain to [Solana](https://docs.helium.com/solana/migration/). Due to this shift, public APIs changed significantly, invalidating the methods this application used to collect reward data. Although the app is still a functional example, it would need to be updated to the relevant, new APIs available to pull data from Helium's Solana blockchain in order to become useful again.**
+
 ## Installation
 The application requires no installation. Simply copy the `index.html` file, `js` and `css` directories into any local folder, and open `index.html` in a web browser. Alternately, the required files can be served from any webserver.
 
